@@ -98,10 +98,11 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 // ================= READY =================
 client.once("ready", () => {
   console.log(`${client.user.tag} is online`);
-  client.user.setActivity(`dsc.gg/bluestar`);
-  type: 3 // 3 = Watching
-});
 
+  client.user.setActivity("dsc.gg/bluestar", {
+    type: 3 // Watching
+  });
+});
 // ================= HELP =================
 function helpEmbed() {
   return new EmbedBuilder()
