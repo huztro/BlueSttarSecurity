@@ -19,7 +19,7 @@ const fs = require("fs");
 // ================= CONFIG =================
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
-const PREFIX = "N";
+const PREFIX = "?";
 
 // ================= CLIENT =================
 const client = new Client({
