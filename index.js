@@ -5,7 +5,6 @@ const {
   Partials,
   Collection,
   EmbedBuilder,
-  PermissionsBitField,
   SlashCommandBuilder,
   REST,
   Routes,
@@ -44,7 +43,7 @@ let db = {
   },
   verification: {
     enabled: false,
-    type: "captcha" // captcha | button
+    type: "captcha"
   }
 };
 
@@ -58,42 +57,72 @@ function saveDB() {
 
 // ================= SLASH COMMANDS =================
 const slashCommands = [
-  new SlashCommandBuilder().setName("ping").setDescription("Check bot latency"),
-  new SlashCommandBuilder().setName("status").setDescription("Bot status"),
-  new SlashCommandBuilder().setName("help").setDescription("Help menu"),
+  new SlashCommandBuilder()
+    .setName("ping")
+    .setDescription("Check bot latency"),
+
+  new SlashCommandBuilder()
+    .setName("status")
+    .setDescription("Bot status"),
+
+  new SlashCommandBuilder()
+    .setName("help")
+    .setDescription("Help menu"),
 
   new SlashCommandBuilder()
     .setName("automod")
     .setDescription("Manage automod")
-    .addSubcommand(s => s.setName("enable").setDescription("Enable automod"))
-    .addSubcommand(s => s.setName("disable").setDescription("Disable automod"))
+    .addSubcommand(s =>
+      s.setName("enable").setDescription("Enable automod")
+    )
+    .addSubcommand(s =>
+      s.setName("disable").setDescription("Disable automod")
+    )
     .addSubcommand(s =>
       s.setName("badword_add")
         .setDescription("Add badword")
-        .addStringOption(o => o.setName("word").setRequired(true))
+        .addStringOption(o =>
+          o.setName("word")
+            .setDescription("Bad word")
+            .setRequired(true)
+        )
     ),
 
   new SlashCommandBuilder()
     .setName("verification")
     .setDescription("Verification system")
-    .addSubcommand(s => s.setName("enable").addStringOption(o =>
-      o.setName("type").setRequired(true).addChoices(
-        { name: "captcha", value: "captcha" },
-        { name: "button", value: "button" }
-      )
-    ))
-    .addSubcommand(s => s.setName("disable"))
+    .addSubcommand(s =>
+      s.setName("enable")
+        .setDescription("Enable verification")
+        .addStringOption(o =>
+          o.setName("type")
+            .setDescription("captcha or button")
+            .setRequired(true)
+            .addChoices(
+              { name: "captcha", value: "captcha" },
+              { name: "button", value: "button" }
+            )
+        )
+    )
+    .addSubcommand(s =>
+      s.setName("disable")
+        .setDescription("Disable verification")
+    )
 ];
 
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 (async () => {
-  await rest.put(
-    Routes.applicationCommands(CLIENT_ID),
-    { body: slashCommands }
-  );
-  console.log("Slash commands loaded.");
-})();
+  try {
+    await rest.put(
+      Routes.applicationCommands(CLIENT_ID),
+      { body: slashCommands }
+    );
+    console.log("Slash commands loaded.");
+  } catch (err) {
+    console.log("Slash command error:", err);
+  }
+});
 
 // ================= READY =================
 client.once("ready", () => {
@@ -103,6 +132,7 @@ client.once("ready", () => {
     type: 3 // Watching
   });
 });
+
 // ================= HELP =================
 function helpEmbed() {
   return new EmbedBuilder()
@@ -117,10 +147,10 @@ Commands:
 - ${PREFIX}help
 
 Slash:
-- /automod
-- /verification
-- /ping
-- /status
+/automod
+/verification
+/ping
+/status
 `);
 }
 
@@ -128,13 +158,13 @@ Slash:
 client.on("messageCreate", async (message) => {
   if (!message.guild || message.author.bot) return;
 
-  // ================= AUTO REACT =================
+  // AUTO REACT
   const trigger = ["itzhuztro", `<@${client.user.id}>`];
   if (trigger.some(t => message.content.toLowerCase().includes(t))) {
-    await message.react("👑");
+    await message.react("👑").catch(() => {});
   }
 
-  // ================= AUTOMOD =================
+  // AUTOMOD
   if (db.automod.enabled) {
     const bad = db.automod.badwords;
     if (bad.some(w => message.content.toLowerCase().includes(w))) {
@@ -143,42 +173,29 @@ client.on("messageCreate", async (message) => {
     }
   }
 
-  // ================= PREFIX COMMANDS =================
   if (!message.content.startsWith(PREFIX)) return;
 
   const args = message.content.slice(PREFIX.length).trim().split(/ +/);
   const cmd = args.shift().toLowerCase();
 
-  // PING
-  if (cmd === "ping") {
-    return message.reply(`🏓 Pong: ${client.ws.ping}ms`);
-  }
+  if (cmd === "ping") return message.reply(`🏓 Pong: ${client.ws.ping}ms`);
 
-  // STATUS
-  if (cmd === "status") {
-    return message.reply("🟢 Bot is online and secure.");
-  }
+  if (cmd === "status") return message.reply("🟢 Bot is online and secure.");
 
-  // HELP
-  if (cmd === "help") {
-    return message.reply({ embeds: [helpEmbed()] });
-  }
+  if (cmd === "help") return message.reply({ embeds: [helpEmbed()] });
 
-  // AUTOMOD ENABLE
   if (cmd === "automod-enable") {
     db.automod.enabled = true;
     saveDB();
     return message.reply("✅ Automod enabled");
   }
 
-  // AUTOMOD DISABLE
   if (cmd === "automod-disable") {
     db.automod.enabled = false;
     saveDB();
     return message.reply("❌ Automod disabled");
   }
 
-  // ADD BADWORD
   if (cmd === "badword-add") {
     const word = args[0];
     if (!word) return message.reply("Provide a word");
@@ -213,7 +230,7 @@ client.on("guildMemberAdd", async (member) => {
   }
 });
 
-// ================= BUTTON INTERACTION =================
+// ================= BUTTON =================
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isButton()) return;
 
@@ -228,7 +245,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-// ================= SLASH COMMAND HANDLER =================
+// ================= SLASH HANDLER =================
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -246,7 +263,6 @@ client.on("interactionCreate", async (interaction) => {
     return interaction.reply({ embeds: [helpEmbed()] });
   }
 
-  // AUTOMOD
   if (commandName === "automod") {
     const sub = interaction.options.getSubcommand();
 
@@ -264,13 +280,14 @@ client.on("interactionCreate", async (interaction) => {
 
     if (sub === "badword_add") {
       const word = interaction.options.getString("word");
+      if (!word) return;
+
       db.automod.badwords.push(word.toLowerCase());
       saveDB();
       return interaction.reply(`Added badword: ${word}`);
     }
   }
 
-  // VERIFICATION
   if (commandName === "verification") {
     const sub = interaction.options.getSubcommand();
 
