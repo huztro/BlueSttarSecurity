@@ -98,13 +98,14 @@ const rest = new REST({ version: "10" }).setToken(TOKEN);
 // ================= READY =================
 client.once("ready", () => {
   console.log(`${client.user.tag} is online`);
-  client.user.setActivity(`${PREFIX}help | Security Bot`);
+  client.user.setActivity(`dsc.gg/bluestar`);
+  type: 3 // 3 = Watching
 });
 
 // ================= HELP =================
 function helpEmbed() {
   return new EmbedBuilder()
-    .setTitle("Security Bot Help Panel")
+    .setTitle("Help Panel")
     .setColor("Blue")
     .setDescription(`
 **Prefix:** ${PREFIX}
